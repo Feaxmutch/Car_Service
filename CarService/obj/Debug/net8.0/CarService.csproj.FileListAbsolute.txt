@@ -1,0 +1,14 @@
+F:\данил\Projects\visual_studio_projects\IJ_projects\OOP\CarService\CarService\bin\Debug\net8.0\CarService.exe
+F:\данил\Projects\visual_studio_projects\IJ_projects\OOP\CarService\CarService\bin\Debug\net8.0\CarService.deps.json
+F:\данил\Projects\visual_studio_projects\IJ_projects\OOP\CarService\CarService\bin\Debug\net8.0\CarService.runtimeconfig.json
+F:\данил\Projects\visual_studio_projects\IJ_projects\OOP\CarService\CarService\bin\Debug\net8.0\CarService.dll
+F:\данил\Projects\visual_studio_projects\IJ_projects\OOP\CarService\CarService\bin\Debug\net8.0\CarService.pdb
+F:\данил\Projects\visual_studio_projects\IJ_projects\OOP\CarService\CarService\obj\Debug\net8.0\CarService.GeneratedMSBuildEditorConfig.editorconfig
+F:\данил\Projects\visual_studio_projects\IJ_projects\OOP\CarService\CarService\obj\Debug\net8.0\CarService.AssemblyInfoInputs.cache
+F:\данил\Projects\visual_studio_projects\IJ_projects\OOP\CarService\CarService\obj\Debug\net8.0\CarService.AssemblyInfo.cs
+F:\данил\Projects\visual_studio_projects\IJ_projects\OOP\CarService\CarService\obj\Debug\net8.0\CarService.csproj.CoreCompileInputs.cache
+F:\данил\Projects\visual_studio_projects\IJ_projects\OOP\CarService\CarService\obj\Debug\net8.0\CarService.dll
+F:\данил\Projects\visual_studio_projects\IJ_projects\OOP\CarService\CarService\obj\Debug\net8.0\refint\CarService.dll
+F:\данил\Projects\visual_studio_projects\IJ_projects\OOP\CarService\CarService\obj\Debug\net8.0\CarService.pdb
+F:\данил\Projects\visual_studio_projects\IJ_projects\OOP\CarService\CarService\obj\Debug\net8.0\CarService.genruntimeconfig.cache
+F:\данил\Projects\visual_studio_projects\IJ_projects\OOP\CarService\CarService\obj\Debug\net8.0\ref\CarService.dll

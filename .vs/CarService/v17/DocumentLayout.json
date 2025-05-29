@@ -1,0 +1,37 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "F:\\\u0434\u0430\u043D\u0438\u043B\\Projects\\visual_studio_projects\\IJ_projects\\OOP\\CarService\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{C96CDF83-47B0-4360-824C-D2F243922F35}|CarService\\CarService.csproj|f:\\\u0434\u0430\u043D\u0438\u043B\\projects\\visual_studio_projects\\ij_projects\\oop\\carservice\\carservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C96CDF83-47B0-4360-824C-D2F243922F35}|CarService\\CarService.csproj|solutionrelative:carservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Program.cs",
+              "DocumentMoniker": "F:\\\u0434\u0430\u043D\u0438\u043B\\Projects\\visual_studio_projects\\IJ_projects\\OOP\\CarService\\CarService\\Program.cs",
+              "RelativeDocumentMoniker": "CarService\\Program.cs",
+              "ToolTip": "F:\\\u0434\u0430\u043D\u0438\u043B\\Projects\\visual_studio_projects\\IJ_projects\\OOP\\CarService\\CarService\\Program.cs",
+              "RelativeToolTip": "CarService\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAEAAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-11-09T08:02:05.979Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
