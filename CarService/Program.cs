@@ -35,7 +35,7 @@ namespace CarService
             CarServiceView menu = new(carService, menuColors);
 
             carService.TakeCars(carFactory.Create(carsCount));
-            carService.ServeCars();
+            carService.ServiceCars();
         }
     }
 
@@ -292,7 +292,7 @@ namespace CarService
 
         public string CommandEndRepair { get; } = "end";
 
-        public void ServeCars()
+        public void ServiceCars()
         {
             while (_cars.Count > 0)
             {
