@@ -219,6 +219,8 @@ namespace CarService
         event Action<ICar, bool> CarServing;
         event Action RequestingCommand;
         event Action<string, ServiceError> CommandFailed;
+        public event Action ServiceStarting;
+        public event Action ServiceEnded;
 
         int Money { get; }
 
@@ -258,6 +260,8 @@ namespace CarService
         public event Action<ICar, bool> CarServing;
         public event Action RequestingCommand;
         public event Action<string, ServiceError> CommandFailed;
+        public event Action ServiceStarting;
+        public event Action ServiceEnded;
 
         public int Money { get; private set; }
 
@@ -273,6 +277,7 @@ namespace CarService
         {
             bool isCarChanged;
             CommandResult commandResult;
+            ServiceStarting?.Invoke();
 
             while (_cars.Count > 0)
             {
@@ -293,6 +298,8 @@ namespace CarService
                     CarServing?.Invoke(car, isCarChanged);
                 }
             }
+
+            ServiceEnded?.Invoke();
         }
 
         public void TakeCars(List<Car> cars)
@@ -445,7 +452,8 @@ namespace CarService
 
             _carService = carService;
             _colors = colors;
-            Subscribe();
+            _carService.ServiceStarting += Subscribe;
+            _carService.ServiceEnded += Unsubscribe;
         }
 
         private void ShowCurrentStatus(ICar car, bool isCarChanged)
@@ -554,18 +562,20 @@ namespace CarService
             }
         }
 
-        private void Subscribe()
+        public void Subscribe()
         {
             _carService.CarServing += ShowCurrentStatus;
             _carService.RequestingCommand += ShowRequestingMessage;
             _carService.CommandFailed += ShowError;
         }
 
-        private void Unsubscribe()
+        public void Unsubscribe()
         {
             _carService.CarServing -= ShowCurrentStatus;
             _carService.RequestingCommand -= ShowRequestingMessage;
             _carService.CommandFailed -= ShowError;
+            _carService.ServiceStarting -= Subscribe;
+            _carService.ServiceEnded -= Unsubscribe;
         }
 
         private void ShowError(string command, ServiceError errorType)
