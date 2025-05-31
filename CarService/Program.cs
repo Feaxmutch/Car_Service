@@ -32,7 +32,7 @@ namespace CarService
             CarFactory carFactory = new(detailFactoriys);
             CarServiceFactory serviceFactory = new(detailFactoriys, detailsInStorage);
             CarService carService = serviceFactory.Create(startMoney, fixedPenality, dynamicPenalityMultiplyer, workPrice);
-            CarServiceView menu = new(carService, menuColors);
+            CarServiceView view = new(carService, menuColors);
 
             carService.TakeCars(carFactory.Create(carsCount));
             carService.ServiceCars();
@@ -41,7 +41,7 @@ namespace CarService
 
     internal class DetailUtilits
     {
-        public static bool TryGetDetail(ICollection<IDetail> details, IDetail sample, out IDetail result, bool isIgnoreDamage = false)
+        public static bool TryGetDetail(ICollection<IDetail> details, IDetail sample, out IDetail result)
         {
             ArgumentNullException.ThrowIfNull(details);
             ArgumentNullException.ThrowIfNull(sample);
@@ -50,7 +50,7 @@ namespace CarService
 
             foreach (var detail in details)
             {
-                if (detail.Clone().Equals(sample.Clone(), isIgnoreDamage))
+                if (detail.Equals(sample))
                 {
                     result = detail;
                     return true;
@@ -58,39 +58,6 @@ namespace CarService
             }
 
             return false;
-        }
-
-        public static bool IsContainsSimilarDetails(List<IDetail> details)
-        {
-            ArgumentNullException.ThrowIfNull(details);
-
-            for (int i = 0; i < details.Count; i++)
-            {
-                if (details.FindAll(detail => detail.Equals(details[i])).Count > 1)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        public static bool HaveBrokenDetails(List<IDetail> details)
-        {
-            ArgumentNullException.ThrowIfNull(details);
-
-            bool isHave = false;
-
-            foreach (var detail in details)
-            {
-                if (detail.IsBroken)
-                {
-                    isHave = true;
-                    break;
-                }
-            }
-
-            return isHave;
         }
     }
 
@@ -153,8 +120,6 @@ namespace CarService
     {
         IReadOnlyList<IDetail> Details { get; }
 
-        bool IsChanged { get; }
-
         bool IsBroken();
     }
 
@@ -166,32 +131,24 @@ namespace CarService
         {
             ArgumentNullException.ThrowIfNull(details);
 
-            if (DetailUtilits.IsContainsSimilarDetails(new(details)))
-            {
-                throw new ArgumentException("Car can have only unique details");
-            }
-
-            _details = details;
+            _details = new HashSet<Detail>(details).ToList();
             TakeRandomDamage();
-            IsChanged = false;
         }
 
         public IReadOnlyList<IDetail> Details => _details;
 
-        public bool IsChanged { get; private set; }
-
         public bool IsBroken()
         {
-            return _details.Where(detail => detail.IsBroken == true).Count() > 0;
+            return _details.Any(detail => detail.IsBroken);
         }
 
         private void TakeRandomDamage()
         {
-            float damageChance = 0.35f;
+            float breakChance = 0.4f;
 
             foreach (var detail in _details)
             {
-                if (UserUtilits.GetRandomBoolean(damageChance))
+                if (UserUtilits.GetRandomBoolean(breakChance))
                 {
                     detail.Break();
                 }
@@ -200,21 +157,22 @@ namespace CarService
             if (IsBroken() == false)
             {
                 UserUtilits.GetRandomObject(_details).Break();
+                Console.WriteLine("принудительная поломка");
+                Console.ReadLine();
             }
         }
 
-        public void ReplaceDetail(int index, Detail detail)
+        public void ReplaceDetail(int index, IDetail detail)
         {
             ArgumentNullException.ThrowIfNull(detail);
-            UserUtilits.HandleIndexExeptions<IDetail>(Details, index);
+            UserUtilits.HandleIndexExeptions(Details, index);
 
-            if (_details[index].Equals(detail, true) == false)
+            if (_details[index].Equals(detail) == false)
             {
                 throw new ArgumentException("incorrect detail for replace");
             }
 
-            _details[index] = detail;
-            IsChanged = true;
+            _details[index] = (Detail)detail;
         }
     }
 
@@ -256,7 +214,28 @@ namespace CarService
         }
     }
 
-    public class CarService
+    public interface ICarService
+    {
+        event Action<ICar, bool> CarServing;
+        event Action RequestingCommand;
+        event Action<string, ServiceError> CommandFailed;
+
+        int Money { get; }
+
+        int FixedPenality { get; }
+
+        float DynamicPenalityMultiplyer { get; }
+
+        int WorkPrice { get; }
+
+        string CommandEndRepair { get; }
+
+        bool HaveDetail(int index, ICar car);
+
+        int GetDynamicPenality(ICar car);
+    }
+
+    public class CarService : ICarService
     {
         private readonly Queue<Car> _cars;
         private readonly Storage _storage;
@@ -276,13 +255,11 @@ namespace CarService
             WorkPrice = workPrice;
         }
 
-        public event Action<ICar> CarServing;
+        public event Action<ICar, bool> CarServing;
         public event Action RequestingCommand;
         public event Action<string, ServiceError> CommandFailed;
 
         public int Money { get; private set; }
-
-        public int CarsCount => _cars.Count;
 
         public int FixedPenality { get; }
 
@@ -294,14 +271,26 @@ namespace CarService
 
         public void ServiceCars()
         {
+            bool isCarChanged;
+            CommandResult commandResult;
+
             while (_cars.Count > 0)
             {
+                commandResult = CommandResult.Error;
+                isCarChanged = false;
                 Car car = _cars.Dequeue();
-                CarServing?.Invoke(car);
+                CarServing?.Invoke(car, isCarChanged);
 
-                while ((RequestUserCommand(car) == CommandResult.EndRepair) == false)
+                while (commandResult == CommandResult.EndRepair == false)
                 {
-                    CarServing?.Invoke(car);
+                    commandResult = RequestUserCommand(car, isCarChanged);
+
+                    if (commandResult == CommandResult.ReplaceDetail)
+                    {
+                        isCarChanged = true;
+                    }
+
+                    CarServing?.Invoke(car, isCarChanged);
                 }
             }
         }
@@ -316,7 +305,7 @@ namespace CarService
         private void ReplaceDetail(int index, Car car)
         {
             UserUtilits.HandleIndexExeptions(car.Details, index);
-            Detail sample = car.Details[index].Clone();
+            IDetail sample = car.Details[index];
 
             if (HaveDetail(index, car) == false)
             {
@@ -328,16 +317,16 @@ namespace CarService
                 Money += sample.Price + WorkPrice;
             }
 
-            car.ReplaceDetail(index, _storage.GiveDetail(sample).Clone());
+            car.ReplaceDetail(index, _storage.GiveDetail(sample));
         }
 
-        private void EndRepair(ICar car)
+        private void EndRepair(ICar car, bool isChanged)
         {
             if (car.IsBroken())
             {
                 int penality = default;
 
-                if (car.IsChanged)
+                if (isChanged)
                 {
                     penality = GetDynamicPenality(car);
                 }
@@ -353,7 +342,7 @@ namespace CarService
         public bool HaveDetail(int index, ICar car)
         {
             UserUtilits.HandleIndexExeptions(car.Details, index);
-            return _storage.HaveDetail(car.Details[index].Clone());
+            return _storage.HaveDetail(car.Details[index]);
         }
 
         public int GetDynamicPenality(ICar car)
@@ -371,14 +360,14 @@ namespace CarService
             return penality;
         }
 
-        private CommandResult RequestUserCommand(Car car)
+        private CommandResult RequestUserCommand(Car car, bool isChanged)
         {
             RequestingCommand?.Invoke();
             string command = Console.ReadLine();
 
             if (command == CommandEndRepair)
             {
-                EndRepair(car);
+                EndRepair(car, isChanged);
                 return CommandResult.EndRepair;
             }
 
@@ -447,9 +436,7 @@ namespace CarService
 
     public class CarServiceView
     {
-        private const string CommandEndRepair = "end";
-
-        private readonly CarService _carService;
+        private readonly ICarService _carService;
         private readonly ViewColors _colors;
 
         public CarServiceView(CarService carService, ViewColors colors)
@@ -461,7 +448,7 @@ namespace CarService
             Subscribe();
         }
 
-        private void ShowCurrentStatus(ICar car)
+        private void ShowCurrentStatus(ICar car, bool isCarChanged)
         {
             Console.ForegroundColor = _colors.Default;
             Console.Clear();
@@ -474,7 +461,7 @@ namespace CarService
             Console.WriteLine();
             ShowPriceInfo();
             Console.WriteLine();
-            ShowEndRepairInfo(car);
+            ShowEndRepairInfo(car, isCarChanged);
         }
 
         private void ShowCarDetails(ICar car)
@@ -518,7 +505,7 @@ namespace CarService
         {
             Console.WriteLine("Для ремонта выберите номер детали");
             Console.Write($"Если вы хотите завершить ремонт введите ");
-            UserUtilits.WriteWithColor($"{CommandEndRepair}\n", _colors.Command);
+            UserUtilits.WriteWithColor($"{_carService.CommandEndRepair}\n", _colors.Command);
         }
 
         public void ShowPriceInfo()
@@ -529,7 +516,7 @@ namespace CarService
             UserUtilits.WriteWithColor($"цена детали + {_carService.WorkPrice}\n", _colors.Money);
         }
 
-        private void ShowEndRepairInfo(ICar car)
+        private void ShowEndRepairInfo(ICar car, bool isCarChanged)
         {
             ArgumentNullException.ThrowIfNull(car);
 
@@ -543,7 +530,7 @@ namespace CarService
                 Console.Write("Если завершите ремонт сейчас, вы ");
                 UserUtilits.WriteWithColor("заплатите ", _colors.Bad);
 
-                if (car.IsChanged)
+                if (isCarChanged)
                 {
                     UserUtilits.WriteWithColor("штраф ", _colors.Bad);
                     UserUtilits.WriteWithColor($"{percent}% ", _colors.Money);
@@ -572,6 +559,13 @@ namespace CarService
             _carService.CarServing += ShowCurrentStatus;
             _carService.RequestingCommand += ShowRequestingMessage;
             _carService.CommandFailed += ShowError;
+        }
+
+        private void Unsubscribe()
+        {
+            _carService.CarServing -= ShowCurrentStatus;
+            _carService.RequestingCommand -= ShowRequestingMessage;
+            _carService.CommandFailed -= ShowError;
         }
 
         private void ShowError(string command, ServiceError errorType)
@@ -627,7 +621,7 @@ namespace CarService
             Bad = bad;
         }
 
-        public ConsoleColor Default { get; } = ConsoleColor.White;
+        public ConsoleColor Default { get; } = ConsoleColor.Gray;
         public ConsoleColor Command { get; }
         public ConsoleColor Money { get; }
         public ConsoleColor Good { get; }
@@ -650,7 +644,7 @@ namespace CarService
 
         public bool IsBroken { get; }
 
-        public Detail Clone();
+        public bool Equals(IDetail detail);
     }
 
     public class Detail : IDetail
@@ -673,27 +667,9 @@ namespace CarService
             IsBroken = true;
         }
 
-        public Detail Clone()
-        {
-            Detail detail = new(Name, Price);
-
-            if (IsBroken)
-            {
-                detail.Break();
-            }
-
-            return detail;
-        }
-
-        public bool Equals(Detail detail, bool isIgnoreDamage = false)
+        public bool Equals(IDetail detail)
         {
             bool isEquals = (detail == null) == false && detail.Name == Name && detail.Price == Price;
-
-            if (isIgnoreDamage == false && isEquals)
-            {
-                isEquals = detail.IsBroken == IsBroken;
-            }
-
             return isEquals;
         }
     }
@@ -723,7 +699,7 @@ namespace CarService
         {
             ArgumentNullException.ThrowIfNull(details);
 
-            if (DetailUtilits.HaveBrokenDetails(details))
+            if (details.Any(detail => detail.IsBroken))
             {
                 throw new ArgumentException("Storage can't have broken details");
             }
@@ -731,18 +707,18 @@ namespace CarService
             _details = details;
         }
 
-        public bool HaveDetail(Detail sample)
+        public bool HaveDetail(IDetail sample)
         {
             ArgumentNullException.ThrowIfNull(sample);
 
-            return DetailUtilits.TryGetDetail(_details, sample, out IDetail _, true);
+            return DetailUtilits.TryGetDetail(_details, sample, out IDetail _);
         }
 
-        public IDetail GiveDetail(Detail sample)
+        public IDetail GiveDetail(IDetail sample)
         {
             ArgumentNullException.ThrowIfNull(sample);
 
-            if (DetailUtilits.TryGetDetail(_details, sample, out IDetail detail, true) == false)
+            if (DetailUtilits.TryGetDetail(_details, sample, out IDetail detail) == false)
             {
                 throw new ArgumentException("Storage not have detail");
             }
